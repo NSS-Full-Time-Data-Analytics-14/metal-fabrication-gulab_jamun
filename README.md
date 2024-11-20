@@ -1,4 +1,4 @@
-# Metalworking Solutions
+`# Metalworking Solutions
 
 Metalworking Solutions is a sheet metal fabricator based in Chattanooga, Tennessee. Established in 2006, the company offers laser cutting, punching, bending, welding, finishing, and delivery services and ships over 2 million parts annually. 
 
@@ -20,4 +20,4 @@ A few tips for navigating the database: Each job can have multiple job operation
     a. Are there certain operations, such as welding, which generate more revenue per production hour?  
     b. Are certain operations consistently generating more revenue per production hour than others or has it changed over time?  
     c. Which operations are most frequently associated with the company's top customers? Are they also the ones that are generating the most revenue per production hour?  
-4. How has the volume of jobs changed over time? Look a the number of booking or number of shipments by week and month. How does on-time delivery vary by week, month, or over time? Does on-time delivery vary by part? To find on-time delivery, you can compare the jmp_completed_date to the jmp_production_due_date column from the jobs table. 
+4. How has the volume of jobs changed over time? Look a the number of booking or number of shipments by week and month. How does on-time delivery vary by week, month, or over time? Does on-time delivery vary by part? To find on-time delivery, you can compare the jmp_completed_date to the jmp_production_due_date column from the jobs table. `
