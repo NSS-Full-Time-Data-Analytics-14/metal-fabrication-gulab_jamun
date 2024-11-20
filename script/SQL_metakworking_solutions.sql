@@ -170,7 +170,7 @@ ORDER BY job_count DESC;
 
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-------- TEAM PIVOT TO #3 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+------- TEAM PIVOT TO #3 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -297,16 +297,41 @@ SELECT * FROM sales_orders;
    SUM(jmo_completed_production_hours)
 -- SUM(omp_order_subtotal_base) (table = sales_orders)
    
+-- ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? --
 
-
--- putting it together one step at a time ♥
 SELECT 
 	jmo_process_short_description AS how_its_made,
 	COUNT(jmo_process_short_description) AS made_count_2023,
-	ROUND(SUM(jmo_completed_production_hours::text::numeric),0) AS total_hours_making
+	ROUND(SUM(jmo_completed_production_hours::TEXT::NUMERIC),0) AS total_hours_making,
+	ROUND(SUM(jmo_completed_production_hours::TEXT::NUMERIC) / COUNT(jmo_process_short_description),3) AS kun_hee
 FROM job_operations_2023 t23
 GROUP BY t23.jmo_process_short_description, t23.jmo_part_id
-ORDER BY total_hours_making DESC;                                  -- For 2023
+ORDER BY total_hours_making DESC;  
+
+-- ????? --
+	   
+SELECT 
+	jmo_process_short_description AS how_its_made,
+	COUNT(jmo_process_short_description) AS made_count_2023,
+	ROUND(SUM(jmo_completed_production_hours::TEXT::NUMERIC),0) AS total_hours_making,
+	ROUND(SUM(jmo_completed_production_hours::TEXT::NUMERIC) / COUNT(jmo_process_short_description::NUMERIC)* 1.0)::MONEY AS kun_hee
+FROM job_operations_2023 t23
+GROUP BY t23.jmo_process_short_description, t23.jmo_part_id
+ORDER BY total_hours_making DESC;    
+
+
+-- ???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? --
+	   
+
+-- putting it together one step at a time ♥ -----------------------------------------------------------------------------
+SELECT 
+	jmo_process_short_description AS how_its_made,
+	COUNT(jmo_process_short_description) AS made_count_2023,
+	ROUND(SUM(jmo_completed_production_hours::TEXT::NUMERIC),0) AS total_hours_making
+FROM job_operations_2023 t23
+GROUP BY t23.jmo_process_short_description, t23.jmo_part_id
+ORDER BY total_hours_making DESC;                                  -- For 2023 
+
 
 
 SELECT 
@@ -315,7 +340,7 @@ SELECT
 	ROUND(SUM(jmo_completed_production_hours::text::numeric),0) AS total_hours_making
 FROM job_operations_2024 t24
 GROUP BY t24.jmo_process_short_description, t24.jmo_part_id
-ORDER BY total_hours_making DESC;                              -- For 2024
+ORDER BY total_hours_making DESC;                                 -- For 2024
 
 
 -- now adding the revenue in to wrap it up ----------------------------------------------
@@ -404,12 +429,219 @@ ORDER BY
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---    b. Are certain operations consistently generating more revenue per production hour than others or has it changed over time?  
+SELECT                                                            
+	t23.jmo_process_short_description AS how_its_made,
+	COUNT(t23.jmo_process_short_description) AS made_count_2023,
+	ROUND(SUM(t23.jmo_completed_production_hours::TEXT::NUMERIC),0) AS total_hours_making,
+	ROUND(SUM(s3.omp_order_subtotal_base::NUMERIC)* 1.0)::MONEY AS total_revenue_made_2023,
+	ROUND(SUM(s3.omp_order_subtotal_base::NUMERIC)* 1.0 / NULLIF(SUM(t23.jmo_completed_production_hours::TEXT::NUMERIC), 0), 2) AS rev_an_hour
+FROM jobs j1
+INNER JOIN sales_order_job_links s2 ON j1.jmp_job_id = s2.omj_job_id
+INNER JOIN sales_orders s3 ON s3.omp_sales_order_id = s2.omj_sales_order_id
+INNER JOIN job_operations_2023 t23 ON j1.jmp_job_id = t23.jmo_job_id
+WHERE s3.omp_sales_order_id = 28108
+GROUP BY t23.jmo_process_short_description
+ORDER BY total_revenue_made_2023 DESC;
+
+-------------------------------------------------------
+-------------------------------------------------------
+
+SELECT                                                            
+	t23.jmo_process_short_description AS how_its_made,
+	COUNT(CASE WHEN t23.jmo_process_short_description = t23.jmo_process_short_description THEN 0 ELSE 0 END) AS case_count_2023,
+	ROUND(SUM(t23.jmo_completed_production_hours::TEXT::NUMERIC),0) AS total_hours_making,
+	ROUND(SUM(s3.omp_order_subtotal_base::NUMERIC)* 1.0)::MONEY AS total_revenue_made_2023,
+	ROUND(SUM(s3.omp_order_subtotal_base::NUMERIC)* 1.0 / NULLIF(SUM(t23.jmo_completed_production_hours::TEXT::NUMERIC), 0), 2) AS rev_an_hour
+FROM jobs j1
+INNER JOIN sales_order_job_links s2 ON j1.jmp_job_id = s2.omj_job_id
+INNER JOIN sales_orders s3 ON s3.omp_sales_order_id = s2.omj_sales_order_id
+INNER JOIN job_operations_2023 t23 ON j1.jmp_job_id = t23.jmo_job_id
+WHERE s3.omp_sales_order_id = 27548
+GROUP BY t23.jmo_process_short_description
+ORDER BY total_revenue_made_2023 DESC;
+
+-- -- -- -- -- --
+
+SELECT         
+	s3.omp_sales_order_id AS wootwoot,
+	t23.jmo_process_short_description AS how_its_made,
+	COUNT(CASE WHEN t23.jmo_process_short_description = 'LASER CUTTING' THEN 0 ELSE 0 END) AS case_count_2023,
+	ROUND(SUM(t23.jmo_completed_production_hours::TEXT::NUMERIC),0) AS total_hours_making
+FROM jobs j1
+INNER JOIN sales_order_job_links s2 ON j1.jmp_job_id = s2.omj_job_id
+INNER JOIN sales_orders s3 ON s3.omp_sales_order_id = s2.omj_sales_order_id
+INNER JOIN job_operations_2023 t23 ON j1.jmp_job_id = t23.jmo_job_id
+GROUP BY s3.omp_sales_order_id, t23.jmo_process_short_description;
+
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+---------------- CHRIS FIX ------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+WITH job_operations AS (SELECT jmo_job_id, jmo_process_short_description, jmo_estimated_production_hours
+					    FROM job_operations_2023
+					    UNION 
+					    SELECT jmo_job_id, jmo_process_short_description, jmo_estimated_production_hours
+					    FROM job_operations_2024),
+
+	other_tables AS (SELECT * 
+				 	 FROM sales_order_job_links 
+				 	 INNER JOIN jobs ON omj_job_id = jmp_job_id
+                 	 INNER JOIN job_operations ON jmp_job_id = jmo_job_id)
+						   
+SELECT 
+	DISTINCT oml_sales_order_line_id, 
+	jmo_process_short_description, 
+	jmo_estimated_production_hours, 
+	jmp_scheduled_due_date, 
+	jmp_scheduled_start_date, 
+	jmp_completed_date, 
+	oml_sales_order_id, 
+	oml_part_id, 
+	oml_part_short_description, 
+	oml_order_quantity, 
+	oml_full_unit_price_base, 
+	oml_full_extended_price_base, 
+	omp_full_order_subtotal_base
+FROM sales_order_lines INNER JOIN sales_orders ON omp_sales_order_id = oml_sales_order_id
+                       INNER JOIN other_tables ON oml_sales_order_id = omj_sales_order_id;
 
 
 
 
 
 
---    c. Which operations are most frequently associated with the company's top customers? 
---       Are they also the ones that are generating the most revenue per production hour?  
+===============================
+===============================
+-- sales_order_id --
+
+-- full_order_subtotal_base ------ revenue -------
+
+-- track it all by: job_id ---------------------
+
+===================================
+===================================
+
+____________________________
+____________________________
+-- WORKING ON A NEW ANGLE --
+____________________________
+____________________________
+
+
+
+	    BRAINSTORM
+-- Operational Efficiency --
+	--------------------
+	
+-- Job Duration Analysis:
+	
+-- • Identify jobs that consistently exceed or fall short of estimated completion times
+	
+-- • Analyze the impact of factors like machine downtime, material shortages, or skill shortages on job duration
+
+
+
+SELECT *
+FROM job_operations_2023; -- jmo_operation_quantity, jmo_quantity_complete
+
+SELECT *
+FROM job_operations_2024; -- yes
+
+SELECT * FROM jobs; 
+
+SELECT * FROM parts; 
+
+
+
+-- Finding the total number of incomplete operations for tables job_operations_2023 & 2024
+
+SELECT 
+	jmo_operation_quantity,
+	jmo_quantity_complete,
+	(jmo_operation_quantity - jmo_quantity_complete) AS total_incomplete_quantity
+FROM job_operations_2023;
+
+
+
+
+SELECT 
+	SUM(jmo_operation_quantity::TEXT::NUMERIC) as total_operation_quantity,
+	SUM(jmo_quantity_complete) AS total_quantity_complete,
+	ROUND(SUM(jmo_operation_quantity::TEXT::NUMERIC) - SUM(jmo_quantity_complete), 0) AS total_incomplete_quantity
+FROM job_operations_2023;
+
+
+-- brainstorming and looking over the data again for more info where I can spot some area that commonly loses money and how
+
+
+
+SELECT * FROM sales_order_lines;
+
+	
+SELECT 
+	oml_order_quantity,
+	oml_full_unit_price_base,
+	oml_unit_price_base,
+	oml_full_extended_price_base,
+	oml_extended_price_base,
+	oml_quantity_shipped,
+	oml_delivery_quantity_total
+FROM sales_order_lines;
+
+
+SELECT 
+	SUM(oml_order_quantity) AS oml_order_quantity_sum,
+	SUM(oml_full_unit_price_base::TEXT::NUMERIC)::MONEY AS oml_full_unit_price_base_sum,
+	SUM(oml_unit_price_base::TEXT::NUMERIC)::MONEY AS oml_unit_price_base_sum,
+	SUM(oml_full_extended_price_base::TEXT::NUMERIC)::MONEY AS oml_full_extended_price_base_sum,
+	SUM(oml_extended_price_base::TEXT::NUMERIC)::MONEY AS oml_extended_price_base_sum,
+	SUM(oml_quantity_shipped) AS oml_quantity_shipped_sum,
+	SUM(oml_delivery_quantity_total) AS oml_delivery_quantity_total_sum
+FROM sales_order_lines;
+
+
+
+-- Now I will start finding out if I can even look eve further into how much money is lost by whater and theri reasoning.
+
+	
+SELECT * FROM sales;
+
+SELECT * FROM sales_orders;
+
+SELECT * FROM sales_order_job_links;
+
+SELECT * FROM jobs;
+
+
+
+
+WITH job_operations AS (SELECT jmo_job_id, jmo_process_short_description, jmo_estimated_production_hours
+					    FROM job_operations_2023
+					    UNION 
+					    SELECT jmo_job_id, jmo_process_short_description, jmo_estimated_production_hours
+					    FROM job_operations_2024),
+
+	other_tables AS (SELECT * 
+				 	 FROM sales_order_job_links 
+				 	 INNER JOIN jobs ON omj_job_id = jmp_job_id
+                 	 INNER JOIN job_operations ON jmp_job_id = jmo_job_id)
+						   
+SELECT 
+	DISTINCT oml_sales_order_line_id, 
+	jmo_process_short_description, 
+	jmo_estimated_production_hours, 
+	jmp_scheduled_due_date, 
+	jmp_scheduled_start_date, 
+	jmp_completed_date, 
+	oml_sales_order_id, 
+	oml_part_id, 
+	oml_part_short_description, 
+	oml_order_quantity, 
+	oml_full_unit_price_base, 
+	oml_full_extended_price_base, 
+	omp_full_order_subtotal_base
+FROM sales_order_lines INNER JOIN sales_orders ON omp_sales_order_id = oml_sales_order_id
+                       INNER JOIN other_tables ON oml_sales_order_id = omj_sales_order_id;
+
